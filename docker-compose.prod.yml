@@ -10,7 +10,6 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      # Ikat ke localhost saja — DB TIDAK boleh terjangkau dari internet.
       - "127.0.0.1:5435:5432"
     volumes:
       - pos_pgdata:/var/lib/postgresql/data
@@ -19,8 +18,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - pos_net
+    networks: [pos_net]
 
   backend:
     build:
@@ -37,8 +35,7 @@ services:
     command: >
       sh -c "alembic upgrade head &&
              uvicorn main:app --host 0.0.0.0 --port 8000 --workers 2"
-    networks:
-      - pos_net
+    networks: [pos_net]
 
   frontend:
     build:
@@ -48,15 +45,7 @@ services:
     restart: always
     depends_on:
       - backend
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=coolify"
-      - "traefik.http.routers.posnexisthub.rule=Host(`pos.nexisthub.id`)"
-      - "traefik.http.routers.posnexisthub.entrypoints=http"
-      - "traefik.http.services.posnexisthub.loadbalancer.server.port=80"
-    networks:
-      - pos_net
-      - coolify
+    networks: [pos_net, edge]
 
 volumes:
   pos_pgdata:
@@ -64,5 +53,5 @@ volumes:
 networks:
   pos_net:
     name: pos_network
-  coolify:
+  edge:
     external: true
